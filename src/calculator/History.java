@@ -5,6 +5,7 @@
 package calculator;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 /**
  *
@@ -23,7 +24,9 @@ public class History {
     }
 
     public ArrayList<Operation> getOperations() {
-        return operations;
+        ArrayList<Operation> reversedList = new ArrayList<>(operations);
+        Collections.reverse(reversedList);
+        return reversedList;
     }
     
 }
