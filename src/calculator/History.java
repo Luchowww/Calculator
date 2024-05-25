@@ -11,6 +11,12 @@ import java.util.Collections;
  *
  * @author edangulo
  */
+
+/*
+ * Se cumple el principio de Single Responsibility, ya que la clase History tiene una única responsabilidad que es almacenar las operaciones realizadas.
+ * 
+ * Se cumple el principio de Open/Closed, ya que se pueden agregar nuevas operaciones sin modificar el código existente.
+ */
 public class History {
     
     private ArrayList<Operation> operations;

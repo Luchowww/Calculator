@@ -8,6 +8,11 @@ package calculator;
  *
  * @author edangulo
  */
+
+/*
+ * Laclase Operation cumple con el principio de Single Responsibility, ya que su única responsabilidad es almacenar los datos de una operación.
+ * 
+ */
 public class Operation {
     
     private double number1;

@@ -4,8 +4,14 @@
  */
 package calculator;
 
+import calculator.utils.Status;
+import calculator.Calculator.AddOperation;
+import calculator.Calculator.DivideOperation;
+import calculator.Calculator.MultiplyOperation;
+import calculator.Calculator.PotencyOperation;
+import calculator.Calculator.SubtractOperation;
+import calculator.utils.Response;
 import java.util.ArrayList;
-import java.util.Collections;
 import javax.swing.DefaultListModel;
 import javax.swing.JOptionPane;
 import javax.swing.JTextField;
@@ -17,7 +23,13 @@ import java.text.DecimalFormat;
  */
 
  /*
-  * La siguiente clase representa la vista de la calculadora, se implementan todos los requisitos solicitados en el enunciado del proyecto.
+  * La siguiente clase representa la vista de la calculadora, se implementan todos los requisitos solicitados en el enunciado del proyecto:
+  * 1. No se han modificado los componentes de la interfaz gráfica.
+  * 2. Los componentes de la interfaz gráfica son descriptivos.
+  * 3. NO se realizan verificados de los datos de entrada.
+  * 4. Se invocan los controladores en los eventos de los botones
+  * 5. Se notifica al usuario el resultado de la operación con showMessage.
+  * 6. NO se ejecuta por si misma, ya existe un archivo Main.java que ejecuta la aplicación.
   */
 public class CalculatorFrame extends javax.swing.JFrame {
     
@@ -38,6 +50,10 @@ public class CalculatorFrame extends javax.swing.JFrame {
     public JList<String> gethistoryList() {
         return historyList;
     }
+
+    public void showMessage(String message, int messageType) {
+        JOptionPane.showMessageDialog(this, message, "Message", messageType);
+    }
     
 
     /**
@@ -55,7 +71,7 @@ public class CalculatorFrame extends javax.swing.JFrame {
      */
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
-    public void initComponents() {
+    private void initComponents() {
 
         titleLabel = new javax.swing.JLabel();
         addButton = new javax.swing.JButton();
@@ -237,90 +253,124 @@ public class CalculatorFrame extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
 
-/*  La siguiente clase representa los controladores de la calculadora, se implementan todos los requisitos solicitados en el enunciado del proyecto.
- * Se muestra si la operación fue exitosa, pero debo ver si lo dejo en controlador o si lo muevo a vista(que es lo que se debería hacer según el proyecto)
- * 
+/* La siguiente clase representa los controladores de la calculadora, se implementan todos los requisitos solicitados en el enunciado del proyecto:
+ * 1. Sistema de respuestas y códigos de estado.
+ * 2. Hay controladores para cada operación.
+ * 3. Se implementa un controlador para el historial de operaciones, de más reciente a las más antiguas.
+ * 4. Se verifica que los operandos tengan a lo más 3 decimales. El resultado también tiene 3 cifras decimales.
+ * 5. Se guarda el historial de operaciones.
  */
-    public class CalculatorController {
+
+public class CalculatorController {
     private Calculator calculator;
     private History history;
     private CalculatorFrame view;
     private DecimalFormat df;
-    
+
     public CalculatorController(CalculatorFrame view) {
         this.calculator = new Calculator();
         this.history = new History();
         this.view = view;
         this.df = new DecimalFormat("#.###"); // Para limitar a 3 decimales
     }
-    
-     private void performOperation(java.awt.event.ActionEvent evt, String operator) {
+
+    private Response performOperation(String operator) {
         try {
-            double number1 = Double.parseDouble(df.format(Double.parseDouble(view.getfirstNumberField().getText())));//Se limita a 3 decimales
-            double number2 = Double.parseDouble(df.format(Double.parseDouble(view.getsecondNumberField().getText())));//Se limita a 3 decimales
+            double number1 = Double.parseDouble(view.getfirstNumberField().getText());
+            double number2 = Double.parseDouble(view.getsecondNumberField().getText());
+
+            number1 = Double.parseDouble(df.format(number1));
+            number2 = Double.parseDouble(df.format(number2));
 
             double result;
-    
+
+            OperationStrategy strategy;
             switch (operator) {
                 case "+":
-                    result = calculator.add(number1, number2);
+                    strategy = new AddOperation();
                     break;
                 case "-":
-                    result = calculator.subtract(number1, number2);
+                    strategy = new SubtractOperation();
                     break;
                 case "*":
-                    result = calculator.multiply(number1, number2);
+                    strategy = new MultiplyOperation();
                     break;
                 case "/":
-                    result = calculator.divide(number1, number2);
+                    strategy = new DivideOperation();
+                    break;
+                case "^":
+                    strategy = new PotencyOperation();
                     break;
                 default:
-                    throw new UnsupportedOperationException("Operación no soportada");
+                    return new Response("Operación no soportada", Status.BAD_REQUEST);
             }
-    
+
+            result = calculator.executeOperation(number1, number2, strategy);
             result = Double.parseDouble(df.format(result));
             this.history.addOperation(new Operation(number1, number2, operator, result));
-    
-            view.getresultField().setText("" + result);
-    
-        JOptionPane.showMessageDialog(null, "Operación Exitosa", "Exito", JOptionPane.INFORMATION_MESSAGE);
+
+            return new Response("Operación exitosa", Status.OK, result);
+        } catch (NumberFormatException ex) {
+            return new Response("Error de formato en los números", Status.BAD_REQUEST);
+        } catch (ArithmeticException ex) {
+            return new Response("Error aritmético", Status.BAD_REQUEST);
         } catch (Exception ex) {
-            JOptionPane.showMessageDialog(null, "Error", "Error", JOptionPane.ERROR_MESSAGE);
+            return new Response("Error inesperado", Status.INTERNAL_SERVER_ERROR);
         }
     }
-    
+
     public void addButtonAction(java.awt.event.ActionEvent evt) {
-        performOperation(evt, "+");
+        handleResponse(performOperation("+"));
     }
-    
+
     public void subtractButtonAction(java.awt.event.ActionEvent evt) {
-        performOperation(evt, "-");
+        handleResponse(performOperation("-"));
     }
-    
+
     public void multiplyButtonAction(java.awt.event.ActionEvent evt) {
-        performOperation(evt, "*");
+        handleResponse(performOperation("*"));
     }
-    
+
     public void divideButtonAction(java.awt.event.ActionEvent evt) {
-        performOperation(evt, "/");
+        handleResponse(performOperation("/"));
     }
-    
+
     public void potencyButtonAction(java.awt.event.ActionEvent evt) {
-        JOptionPane.showMessageDialog(null, "Not Implemented", "Error", JOptionPane.ERROR_MESSAGE);
+        handleResponse(performOperation("^"));
     }
-    
+
     public void clearButtonAction(java.awt.event.ActionEvent evt) {
         view.getfirstNumberField().setText("");
         view.getsecondNumberField().setText("");
         view.getresultField().setText("");
     }
-    
+
     public void updateHistoryButtonAction(java.awt.event.ActionEvent evt) {
         ArrayList<Operation> operationHistory = this.history.getOperations();
-    
-        DefaultListModel model = new DefaultListModel();
-        model.addAll(operationHistory);
+
+        DefaultListModel<String> model = new DefaultListModel<>();
+        for (Operation op : operationHistory) {
+            model.addElement(op.toString());
+        }
         view.gethistoryList().setModel(model);
+    }
+
+    private void handleResponse(Response response) {
+        switch (response.getStatus()) {
+            case Status.OK:
+                view.getresultField().setText(response.getObject().toString());
+                view.showMessage(response.getMessage(), JOptionPane.INFORMATION_MESSAGE);
+                break;
+            case Status.BAD_REQUEST:
+                view.showMessage(response.getMessage(), JOptionPane.WARNING_MESSAGE);
+                break;
+            case Status.INTERNAL_SERVER_ERROR:
+                view.showMessage(response.getMessage(), JOptionPane.ERROR_MESSAGE);
+                break;
+            default:
+                view.showMessage("Estado desconocido", JOptionPane.ERROR_MESSAGE);
+                break;
+        }
     }
 }
 
